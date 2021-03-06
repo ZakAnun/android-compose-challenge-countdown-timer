@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.example.androiddevchallenge
 
 import android.app.Application
@@ -6,9 +21,13 @@ import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class MainViewModel(application: Application): AndroidViewModel(application) {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "MainViewModel"
@@ -17,7 +36,7 @@ class MainViewModel(application: Application): AndroidViewModel(application) {
     /**
      * template data source
      */
-    var hourTimes = listOf("0.6 hour", "0.7 hour", "0.8 hour", "0.9 hour","1.0 hour", "1.1 hour", "1.2 hour")
+    var hourTimes = listOf("0.6 hour", "0.7 hour", "0.8 hour", "0.9 hour", "1.0 hour", "1.1 hour", "1.2 hour")
     var minTimes = listOf("1 min", "5 min", "10 min", "15 min", "20 min", "25 min", "30 min")
     var secondTimes = listOf("10 sec", "20 sec", "30 sec", "40 sec", "50 sec", "60 sec")
 
@@ -96,39 +115,45 @@ class MainViewModel(application: Application): AndroidViewModel(application) {
      * 处理小时
      */
     private fun handleHour() {
-        startJob(if (calcSecond == 0) {
-            val res = selectTime.value.split(" ")[0].toFloat()
-            if (res >= 1) {
-                realHour.value = "1"
+        startJob(
+            if (calcSecond == 0) {
+                val res = selectTime.value.split(" ")[0].toFloat()
+                if (res >= 1) {
+                    realHour.value = "1"
+                } else {
+                    realHour.value = ""
+                }
+                (res * 60 * 60).toInt()
             } else {
-                realHour.value = ""
+                calcSecond
             }
-            (res * 60 * 60).toInt()
-        } else {
-            calcSecond
-        })
+        )
     }
 
     /**
      * 处理分钟
      */
     private fun handleMin() {
-        startJob(if (calcSecond == 0) {
-            selectTime.value.split(" ")[0].toInt() * 60
-        } else {
-            calcSecond
-        })
+        startJob(
+            if (calcSecond == 0) {
+                selectTime.value.split(" ")[0].toInt() * 60
+            } else {
+                calcSecond
+            }
+        )
     }
 
     /**
      * 处理秒
      */
     private fun handleSecond() {
-        startJob(if (calcSecond == 0) {
-            selectTime.value.split(" ")[0].toInt()
-        } else {
-            calcSecond
-        })
+        startJob(
+            if (calcSecond == 0) {
+                selectTime.value.split(" ")[0].toInt()
+            } else {
+                calcSecond
+            }
+        )
     }
 
     /**
@@ -153,10 +178,9 @@ class MainViewModel(application: Application): AndroidViewModel(application) {
                     realSecOne = (calcSecond % 60) / 10
                     realSecTwo = (calcSecond % 60) % 10
                 }
-                Log.d("MainViewModel", "calcSecond = $calcSecond, min = $min, sec = ${realSecOne}${realSecTwo}")
                 withContext(Dispatchers.Main) {
                     realMinute.value = "$min"
-                    realSecond.value = "${realSecOne}${realSecTwo}"
+                    realSecond.value = "${realSecOne}$realSecTwo"
                     calcSecond -= 1
                     if (calcSecond <= 0) {
                         isCalculating.value = false
